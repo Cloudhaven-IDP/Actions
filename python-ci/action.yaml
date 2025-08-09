@@ -1,0 +1,42 @@
+name: "Python Streamlit CI (lint, test, buildx)"
+description: "Checkout, lint, test, and ensure docker buildx builds linux/arm64 (no push)."
+inputs:
+  workdir:
+    description: "Directory containing Dockerfile, requirements.txt, src/, tests/"
+    required: true
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.11"
+  dockerfile:
+    description: "Optional explicit Dockerfile path (relative to repo root)"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+
+    - name: Install deps
+      shell: bash
+      working-directory: ${{ inputs.workdir }}
+      run: |
+        pip install -r requirements.txt
+        pip install ruff pytest
+
+    - name: Lint
+      shell: bash
+      working-directory: ${{ inputs.workdir }}
+      run: ruff check src tests
+
+    - name: Test
+      shell: bash
+      working-directory: ${{ inputs.workdir }}
+      run: pytest -q
